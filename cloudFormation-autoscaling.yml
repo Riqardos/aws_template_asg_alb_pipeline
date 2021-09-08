@@ -1,0 +1,378 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Tempalte for: ASG, ALB, VPC, Public/Private Subnets."
+Parameters:
+  ResourcePrefix:
+    Type: String
+    Default: rk-ASG
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instance
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: rk-key-pair
+    ConstraintDescription: must be the name of an existing EC2 KeyPair.
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues: [t2.micro]
+    ConstraintDescription: must be a valid EC2 instance type.
+  VpcCidr:
+    Default: "10.0.3.0/24"
+    Type: String
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+  SSHLocation:
+    Description: The IP address range that can be used to SSH to the EC2 instances
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+    Default: 0.0.0.0/0
+    AllowedPattern: (\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+  LatestAmiId:
+    Type: String
+    Default: "ami-0f74aaed5058c7fe6"
+  RegionName:
+    Type: String
+    Default: eu-central-1
+
+Resources:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-InternetGateway"
+
+  InternetGatewayAttachement:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-VPC"
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: True
+      EnableDnsSupport: True
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PublicRouteTable"
+      VpcId: !Ref VPC
+
+  RouteToGateway:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetC
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PublicSubnetA"
+      AvailabilityZone:
+        Fn::Select: [0, Fn::GetAZs: !Ref RegionName]
+      CidrBlock:
+        Fn::Select: [0, Fn::Cidr: [!Ref VpcCidr, 8, 5]]
+      MapPublicIpOnLaunch: True
+      VpcId: !Ref VPC
+
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PublicSubnetB"
+      AvailabilityZone:
+        Fn::Select: [1, Fn::GetAZs: !Ref RegionName]
+      CidrBlock:
+        Fn::Select: [1, Fn::Cidr: [!Ref VpcCidr, 8, 5]]
+      MapPublicIpOnLaunch: True
+      VpcId: !Ref VPC
+
+  PublicSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PublicSubnetC"
+      AvailabilityZone:
+        Fn::Select: [2, Fn::GetAZs: !Ref RegionName]
+      CidrBlock:
+        Fn::Select: [2, Fn::Cidr: [!Ref VpcCidr, 8, 5]]
+      MapPublicIpOnLaunch: True
+      VpcId: !Ref VPC
+
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PrivateSubnetA"
+      AvailabilityZone:
+        Fn::Select: [0, Fn::GetAZs: !Ref RegionName]
+      CidrBlock:
+        Fn::Select: [3, Fn::Cidr: [!Ref VpcCidr, 8, 5]]
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PrivateSubnetB"
+      AvailabilityZone:
+        Fn::Select: [1, Fn::GetAZs: !Ref RegionName]
+      CidrBlock:
+        Fn::Select: [4, Fn::Cidr: [!Ref VpcCidr, 8, 5]]
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+
+  PrivateSubnetC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PrivateSubnetC"
+      AvailabilityZone:
+        Fn::Select: [2, Fn::GetAZs: !Ref RegionName]
+      CidrBlock:
+        Fn::Select: [5, Fn::Cidr: [!Ref VpcCidr, 8, 5]]
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+
+  EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachement
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-EIP"
+
+  NAT:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-NAT"
+      AllocationId: !GetAtt EIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+
+  RouteToNat:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NAT
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "${ResourcePrefix}-PrivateRouteTable"
+      VpcId: !Ref VPC
+
+  PrivateSubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnetRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetC
+      RouteTableId: !Ref PrivateRouteTable
+
+  ASG:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    DependsOn:
+      - RouteToNat
+      - PrivateSubnetRouteTableAssociation1
+      - PrivateSubnetRouteTableAssociation2
+      - PrivateSubnetRouteTableAssociation3
+    Properties:
+      AutoScalingGroupName: !Sub "${ResourcePrefix}-ASG"
+      AvailabilityZones:
+        Fn::GetAZs: !Ref RegionName
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      DesiredCapacity: "2"
+      MinSize: "2"
+      MaxSize: "8"
+      HealthCheckGracePeriod: 300
+      HealthCheckType: "ELB"
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+        - !Ref PrivateSubnetC
+      TargetGroupARNs: [!Ref TargetGroup]
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub "${ResourcePrefix}-LaunchTemplate"
+      LaunchTemplateData:
+        ImageId: !Ref LatestAmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref "KeyName"
+        SecurityGroupIds: [!Ref InstanceSecurityGroup]
+
+  WebServerScaleUpPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref "ASG"
+      Cooldown: "60"
+      ScalingAdjustment: 1
+
+  WebServerScaleDownPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AdjustmentType: ChangeInCapacity
+      AutoScalingGroupName: !Ref "ASG"
+      Cooldown: "60"
+      ScalingAdjustment: -1
+
+  CPUAlarmHigh:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ResourcePrefix}-CPUAlarmHigh"
+      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 90
+      AlarmActions: [!Ref "WebServerScaleUpPolicy"]
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref "ASG"
+      ComparisonOperator: GreaterThanThreshold
+
+  CPUAlarmLow:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ResourcePrefix}-CPUAlarmLow"
+      AlarmDescription: Scale-down if CPU < 75% for 10 minutes
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 75
+      AlarmActions: [!Ref "WebServerScaleDownPolicy"]
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref "ASG"
+      ComparisonOperator: LessThanThreshold
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub "${ResourcePrefix}-ALB"
+      Type: application
+      Subnets:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+        - !Ref PublicSubnetC
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub "${ResourcePrefix}-target-group"
+      Port: 80
+      Protocol: HTTP
+      HealthCheckEnabled: True
+      HealthCheckPath: /healthcheck
+      HealthCheckProtocol: HTTP
+      HealthCheckIntervalSeconds: 5
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+
+      VpcId: !Ref VPC
+
+  HTTPlistener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  ALBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ResourcePrefix}-ALBSecurityGroup"
+      GroupDescription: Enable HTTP access via port 80
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${ResourcePrefix}-InstanceSecurityGroup"
+      GroupDescription: Enable SSH access via port 22 and http on port 80
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref "SSHLocation"
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref "SSHLocation"
+      VpcId: !Ref VPC
+
+Outputs:
+  LoadBalancerDNS:
+    Description: Load balancer dns
+    Value: !GetAtt ALB.DNSName
