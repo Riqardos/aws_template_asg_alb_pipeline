@@ -29,7 +29,7 @@ Parameters:
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
   LatestAmiId:
     Type: String
-    Default: "ami-0f74aaed5058c7fe6"
+    Default: "ami-0f121ce69f9e67382"
   RegionName:
     Type: String
     Default: eu-central-1
@@ -40,7 +40,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-InternetGateway"
+          Value: !Sub "${ResourcePrefix}-InternetGateway"
 
   InternetGatewayAttachement:
     Type: AWS::EC2::VPCGatewayAttachment
@@ -53,7 +53,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-VPC"
+          Value: !Sub "${ResourcePrefix}-VPC"
       CidrBlock: !Ref VpcCidr
       EnableDnsHostnames: True
       EnableDnsSupport: True
@@ -63,7 +63,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PublicRouteTable"
+          Value: !Sub "${ResourcePrefix}-PublicRouteTable"
       VpcId: !Ref VPC
 
   RouteToGateway:
@@ -97,7 +97,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PublicSubnetA"
+          Value: !Sub "${ResourcePrefix}-PublicSubnetA"
       AvailabilityZone:
         Fn::Select: [0, Fn::GetAZs: !Ref RegionName]
       CidrBlock:
@@ -110,7 +110,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PublicSubnetB"
+          Value: !Sub "${ResourcePrefix}-PublicSubnetB"
       AvailabilityZone:
         Fn::Select: [1, Fn::GetAZs: !Ref RegionName]
       CidrBlock:
@@ -123,7 +123,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PublicSubnetC"
+          Value: !Sub "${ResourcePrefix}-PublicSubnetC"
       AvailabilityZone:
         Fn::Select: [2, Fn::GetAZs: !Ref RegionName]
       CidrBlock:
@@ -136,7 +136,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PrivateSubnetA"
+          Value: !Sub "${ResourcePrefix}-PrivateSubnetA"
       AvailabilityZone:
         Fn::Select: [0, Fn::GetAZs: !Ref RegionName]
       CidrBlock:
@@ -149,7 +149,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PrivateSubnetB"
+          Value: !Sub "${ResourcePrefix}-PrivateSubnetB"
       AvailabilityZone:
         Fn::Select: [1, Fn::GetAZs: !Ref RegionName]
       CidrBlock:
@@ -162,7 +162,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PrivateSubnetC"
+          Value: !Sub "${ResourcePrefix}-PrivateSubnetC"
       AvailabilityZone:
         Fn::Select: [2, Fn::GetAZs: !Ref RegionName]
       CidrBlock:
@@ -176,14 +176,14 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-EIP"
+          Value: !Sub "${ResourcePrefix}-EIP"
 
   NAT:
     Type: AWS::EC2::NatGateway
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-NAT"
+          Value: !Sub "${ResourcePrefix}-NAT"
       AllocationId: !GetAtt EIP.AllocationId
       SubnetId: !Ref PublicSubnetA
 
@@ -200,7 +200,7 @@ Resources:
     Properties:
       Tags:
         - Key: Name
-          Value: "${ResourcePrefix}-PrivateRouteTable"
+          Value: !Sub "${ResourcePrefix}-PrivateRouteTable"
       VpcId: !Ref VPC
 
   PrivateSubnetRouteTableAssociation1:
@@ -261,7 +261,7 @@ Resources:
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref "ASG"
-      Cooldown: "60"
+      Cooldown: 300
       ScalingAdjustment: 1
 
   WebServerScaleDownPolicy:
@@ -269,20 +269,20 @@ Resources:
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref "ASG"
-      Cooldown: "60"
+      Cooldown: 300
       ScalingAdjustment: -1
 
   CPUAlarmHigh:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ResourcePrefix}-CPUAlarmHigh"
-      AlarmDescription: Scale-up if CPU > 90% for 10 minutes
+      AlarmDescription: Scale-up if CPU > 75% for 1 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 90
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 50
       AlarmActions: [!Ref "WebServerScaleUpPolicy"]
       Dimensions:
         - Name: AutoScalingGroupName
@@ -293,13 +293,13 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ResourcePrefix}-CPUAlarmLow"
-      AlarmDescription: Scale-down if CPU < 75% for 10 minutes
+      AlarmDescription: Scale-down if CPU < 50% for 1 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 75
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 25
       AlarmActions: [!Ref "WebServerScaleDownPolicy"]
       Dimensions:
         - Name: AutoScalingGroupName
@@ -327,11 +327,10 @@ Resources:
       HealthCheckEnabled: True
       HealthCheckPath: /healthcheck
       HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 5
-      HealthCheckTimeoutSeconds: 2
+      HealthCheckIntervalSeconds: 10
+      HealthCheckTimeoutSeconds: 9
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
-
+      UnhealthyThresholdCount: 10
       VpcId: !Ref VPC
 
   HTTPlistener:
@@ -376,3 +375,4 @@ Outputs:
   LoadBalancerDNS:
     Description: Load balancer dns
     Value: !GetAtt ALB.DNSName
+    
