@@ -29,7 +29,7 @@ Parameters:
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
   LatestAmiId:
     Type: String
-    Default: "ami-0f121ce69f9e67382"
+    Default: "ami-0b446614e4bde0e9a"
   RegionName:
     Type: String
     Default: eu-central-1
@@ -276,12 +276,12 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ResourcePrefix}-CPUAlarmHigh"
-      AlarmDescription: Scale-up if CPU > 75% for 1 minutes
+      AlarmDescription: Scale-up if CPU > 50% for 2 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 2
       Threshold: 50
       AlarmActions: [!Ref "WebServerScaleUpPolicy"]
       Dimensions:
@@ -293,12 +293,12 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ResourcePrefix}-CPUAlarmLow"
-      AlarmDescription: Scale-down if CPU < 50% for 1 minutes
+      AlarmDescription: Scale-down if CPU < 525% for 4 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
       Period: 60
-      EvaluationPeriods: 1
+      EvaluationPeriods: 4
       Threshold: 25
       AlarmActions: [!Ref "WebServerScaleDownPolicy"]
       Dimensions:
@@ -317,6 +317,9 @@ Resources:
         - !Ref PublicSubnetC
       SecurityGroups:
         - !Ref ALBSecurityGroup
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 4000
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -330,7 +333,7 @@ Resources:
       HealthCheckIntervalSeconds: 10
       HealthCheckTimeoutSeconds: 9
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 10
+      UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
 
   HTTPlistener:
