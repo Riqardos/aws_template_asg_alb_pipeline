@@ -1,0 +1,15 @@
+{
+  "name": "testeset",
+  "version": "1.0.0",
+  "description": "Simple REST API to test VM and check for Health Check.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "rkas",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-healthcheck": "^0.1.0"
+  }
+}

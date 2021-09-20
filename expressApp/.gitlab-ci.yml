@@ -1,0 +1,27 @@
+stages:
+  - test
+  - deploy
+
+env-test:
+  stage: test
+  script:
+    - pwd
+    - whoami
+    - hostname
+    - python3 --version
+    - pip --version
+    - ansible --version
+    - echo IT WORKs !!
+    - echo "$CI_COMMIT_SHORT_SHA"
+
+test-playbook:
+  stage: test
+  script:
+    - ansible-playbook ansible/test.yml
+
+deploy-new-version-to-Azure-VMSS:
+  stage: deploy
+  script:
+    - ansible-playbook ansible/azure_create_vm.yml -e image_name="$CI_COMMIT_SHORT_SHA" --ssh-common-args="-o StrictHostKeyChecking=no"
+  rules:
+    - if: "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^release/"
