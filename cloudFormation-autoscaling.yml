@@ -29,7 +29,7 @@ Parameters:
     ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
   LatestAmiId:
     Type: String
-    Default: "ami-0b446614e4bde0e9a"
+    Default: "ami-0a57dc3a1db13d3ab"
   RegionName:
     Type: String
     Default: eu-central-1
@@ -261,7 +261,7 @@ Resources:
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref "ASG"
-      Cooldown: 300
+      Cooldown: 60
       ScalingAdjustment: 1
 
   WebServerScaleDownPolicy:
@@ -269,7 +269,7 @@ Resources:
     Properties:
       AdjustmentType: ChangeInCapacity
       AutoScalingGroupName: !Ref "ASG"
-      Cooldown: 300
+      Cooldown: 60
       ScalingAdjustment: -1
 
   CPUAlarmHigh:
@@ -293,12 +293,12 @@ Resources:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmName: !Sub "${ResourcePrefix}-CPUAlarmLow"
-      AlarmDescription: Scale-down if CPU < 525% for 4 minutes
+      AlarmDescription: Scale-down if CPU < 25% for 4 minutes
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Statistic: Average
       Period: 60
-      EvaluationPeriods: 4
+      EvaluationPeriods: 2
       Threshold: 25
       AlarmActions: [!Ref "WebServerScaleDownPolicy"]
       Dimensions:
@@ -330,10 +330,10 @@ Resources:
       HealthCheckEnabled: True
       HealthCheckPath: /healthcheck
       HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 10
-      HealthCheckTimeoutSeconds: 9
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 2
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 3
       VpcId: !Ref VPC
 
   HTTPlistener:
