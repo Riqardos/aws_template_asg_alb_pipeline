@@ -1,0 +1,9 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ec2-user/deploy
+hooks:
+  ApplicationStart:
+    - location: ./start_server.sh
+      runas: root

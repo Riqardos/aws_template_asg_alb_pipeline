@@ -2,8 +2,7 @@ const express = require("express");
 const os = require("os");
 
 const app = express();
-const port = 88;
-
+const port = 80;
 
 
 
@@ -27,6 +26,7 @@ app.get("/api", (req, res) => {
   res.send({
     hostname: os.hostname(),
     uptime: dhm(process.uptime() * 1000),
+    version: 3
   });
   res.status(200)
 });

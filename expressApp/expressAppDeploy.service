@@ -1,0 +1,11 @@
+[Unit]
+Description=LTPS NodeJS Test Application
+After=network-online.target
+
+[Service]
+Restart=on-failure
+WorkingDirectory=/
+ExecStart=/.nvm/versions/node/v16.8.0/bin/node /home/ec2-user/deploy/app.js
+
+[Install]
+WantedBy=multi-user.target
